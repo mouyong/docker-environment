@@ -1,7 +1,7 @@
 ## 添加部署相关程序
 
 ```
-git subtree add -P deploy/ git@git-to-codeup.git master
+git subtree add -P deploy/ git@github.com:mouyong/docker-environment.git master
 
 cp deploy/Dockerfile .
 cp deploy/docker-entrypoint.sh .
