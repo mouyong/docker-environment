@@ -27,7 +27,9 @@ RUN apt-get update && apt-get upgrade -y &&  \
  curl \
  procps \
  python-dev \
- cron
+ cron \
+ git \
+ zsh
 
 # 复制php.ini文件，开启php扩展包
 RUN docker-php-source extract
@@ -64,6 +66,8 @@ RUN printf "\n" | pecl install redis && \
 RUN printf "\n" | pecl install -o -f swoole && \
  docker-php-ext-enable swoole
 
+RUN printf "\n" | docker-php-ext-install pcntl
+
 # 删除安装完的源码包
 RUN docker-php-source delete && \
  rm -rf /var/lib/apt/lists/* && \
@@ -77,8 +81,26 @@ COPY ./docker-php-entrypoint.sh /usr/local/bin/docker-php-entrypoint
 
 RUN chmod +x /usr/local/bin/docker-run /usr/local/bin/docker-php-entrypoint
 
-WORKDIR /var/www/html
+RUN touch ~/.bash_aliases && \
+  apt install -y zsh && \
+  git clone https://ghproxy.com/https://github.com/ohmyzsh/ohmyzsh.git ~/.oh-my-zsh && \
+  cp ~/.oh-my-zsh/templates/zshrc.zsh-template ~/.zshrc && \
+  sed -i 's/ZSH_THEME="robbyrussell"/#ZSH_THEME="robbyrussell"\nZSH_THEME="kafeitu"/' ~/.zshrc && \
+  printf "\nemulate sh -c 'source ~/.bash_aliases'\n" | tee -a ~/.zprofile && \
+  printf "\nemulate sh -c 'source ~/.profile'\n" | tee -a ~/.zprofile && \
+  chown -R $(whoami):$(whoami) ~/.oh-my-zsh && \
+  chown $(whoami):$(whoami) ~/.zshrc && \
+  chown $(whoami):$(whoami) ~/.zprofile && \
+  which zsh && chsh -s $(which zsh) $(whoami)
 
 ENV COMPOSER_ALLOW_SUPERUSER 1
-RUN wget https://ghproxy.com/https://raw.githubusercontent.com/composer/getcomposer.org/76a7060ccb93902cd7576b67264ad91c8a2700e2/web/installer -O - -q | php && mv composer.phar /usr/local/bin/composer
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/bin --filename=composer \
+ && composer --ansi --version --no-interaction
 
+WORKDIR /var/www/html
+
+# webman
+EXPOSE 8787
+
+# webman-gateway
+EXPOSE 1236 7200
